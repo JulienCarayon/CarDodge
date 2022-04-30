@@ -42,6 +42,11 @@ def write(char):
     uart.write(char)
 
 
+def writeAt(char, x_display, y_display):
+    move(x_display, y_display)
+    uart.write(char)
+
+
 def displayObj(Obj):
     for index, line in enumerate(Obj.body.splitlines()):
         move(Obj.x, Obj.y + index)
