@@ -1,6 +1,7 @@
-# from sys import last_traceback
-from pyb import UART, SPI, Pin
-import pyb
+from pyb import UART, SPI, Pin, LED, delay
+
+# import pyb
+import accelerometer
 import voitures
 import texts
 import vt100
@@ -10,24 +11,16 @@ from constant import FSM
 
 
 ####### PINs DEFINITION #######
-push_button = pyb.Pin("PA0", Pin.IN, Pin.PULL_DOWN)
-led_px, led_nx, led_py, led_ny = pyb.LED(1), pyb.LED(2), pyb.LED(3), pyb.LED(4)
-
+push_button = Pin("PA0", Pin.IN, Pin.PULL_DOWN)
+led_px, led_nx, led_py, led_ny = LED(1), LED(2), LED(3), LED(4)
 
 ######## SPI/ACCELEROMETER MANAGEMENT ###########
-CS = Pin("PE3", Pin.OUT_PP)  # SPI PROTOCOLE
-SPI_1 = SPI(  # SPI PROTOCOLE
-    1,  # SPI1: PA5,PA6, PA7
-    SPI.MASTER,
-    baudrate=50000,
-    polarity=0,
-    phase=0,
-)
-x_addr = 0x28
-y_addr = 0x2A
-z_addr = 0x2C
-addr_who_am_I = 0x0F
-addr_ctrl_reg4 = 0x20
+
+# x_addr = 0x28
+# y_addr = 0x2A
+# z_addr = 0x2C
+# addr_who_am_I = 0x0F
+# addr_ctrl_reg4 = 0x20
 
 
 ####### VARIABLES / CONSTANT #######
@@ -36,40 +29,12 @@ logoIsDiplayed = False
 ######  FUNCTIONS ######
 
 
-def readReg(address):
-    CS.low()
-    SPI_1.send(address | 0x80)
-    tab_values = SPI_1.recv(1)
-    CS.high()
-    return tab_values[0]
-
-
-def writeReg(address, data):
-    CS.low()
-    SPI_1.send(address)
-    SPI_1.send(data)
-    CS.high()
-
-
-def convert_value(high, low):
-    value = (high << 8) | low
-    if value & (1 << 15):
-        value = value - (1 << 16)
-    return value * (2000 / 32768)
-
-
-def readacceleration(baseAddr):
-    low = readReg(baseAddr)
-    high = readReg(baseAddr + 1)
-    return convert_value(high, low)
-
-
 def accelToMovement(step_x=8, step_y=4, x_min=1, x_max=185, y_min=0, y_max=45):
 
-    x_accel = readacceleration(x_addr)
-    y_accel = readacceleration(y_addr)
-    z_accel = readacceleration(z_addr)
-    global x  # Thank you python for using pointers as variable <3
+    x_accel = accelerometer.read(accelerometer.x_addr)
+    y_accel = accelerometer.read(accelerometer.y_addr)
+    z_accel = accelerometer.read(accelerometer.z_addr)
+    global x
     global y
     # print("{:20},{:20},{:20}".format(x_accel, y_accel, z_accel))
 
@@ -100,10 +65,10 @@ def accelToMovement(step_x=8, step_y=4, x_min=1, x_max=185, y_min=0, y_max=45):
 
 def accelToMovementWithReset(step_x=8, step_y=4, x_min=1, x_max=185, y_min=0, y_max=45):
 
-    x_accel = readacceleration(x_addr)
-    y_accel = readacceleration(y_addr)
-    z_accel = readacceleration(z_addr)
-    global x  # Thank you python for using pointers as variable <3
+    x_accel = accelerometer.read(accelerometer.x_addr)
+    y_accel = accelerometer.read(accelerometer.y_addr)
+    z_accel = accelerometer.read(accelerometer.z_addr)
+    global x
     global y
     # print("{:20},{:20},{:20}".format(x_accel, y_accel, z_accel))
 
@@ -111,7 +76,7 @@ def accelToMovementWithReset(step_x=8, step_y=4, x_min=1, x_max=185, y_min=0, y_
         led_px.on()
         x = x + step_x
         while x_accel >= 275:
-            x_accel = readacceleration(x_addr)
+            x_accel = accelerometer.read(accelerometer.x_addr)
     elif 275:
         led_px.off()
 
@@ -125,7 +90,7 @@ def accelToMovementWithReset(step_x=8, step_y=4, x_min=1, x_max=185, y_min=0, y_
         led_nx.on()
         x = x - step_x
         while x_accel <= -275:
-            x_accel = readacceleration(x_addr)
+            x_accel = accelerometer.read(accelerometer.x_addr)
 
     elif -275:
         led_nx.off()
@@ -143,21 +108,29 @@ def accelToMovementWithReset(step_x=8, step_y=4, x_min=1, x_max=185, y_min=0, y_
 while True:
     if FSM == "INITIALISATION":
         FSM_Changed = False
-
-        print(readReg(addr_who_am_I))  # SPI PROTOCOLE
-        writeReg(addr_ctrl_reg4, 0x077)  # SPI PROTOCOLE
+        # print(accelerometer.readReg(addr_who_am_I))  # SPI PROTOCOLE
+        # accelerometer.writeReg(addr_ctrl_reg4, 0x077)  # SPI PROTOCOLE
+        vt100.clear_screen()
         x = 30
         y = 0
         last_x = 0
+        vt100.move(0, 0)
+        vt100.write("Please make sure your VT100 window is set to 200x50")
+        delay(2000)
 
         cars_displayed = False
         choosen_car = None
         if logoIsDiplayed == False:
             vt100.clear_screen()
             vt100.display(texts.flag, 20, 2)
-            vt100.display(texts.flag, 80, 2)
+            vt100.display(texts.flag, 170, 2)
             vt100.display(texts.CarDodge, 55, 2)
             logoIsDiplayed = True
+            for ycar in range(160, 30, -4):
+                vt100.display(voitures.police, 90, ycar)
+                vt100.display(voitures.bleu, 80, ycar - 20)
+
+            delay(2000)
 
         FSM = "CHOOSE CAR"
         FSM_Changed = True

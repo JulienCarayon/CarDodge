@@ -32,3 +32,7 @@ def display(skin, x_display, y_display):
     for index, line in enumerate(skin.splitlines()):
         move(x_display, y_display + index)
         uart.write(line)
+
+
+def write(char):
+    uart.write(char)
