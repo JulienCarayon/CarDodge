@@ -1,7 +1,11 @@
 from pyb import UART
 
+
 # import pyb
-from constant import SCREEN_WIDTH
+from constant import SCREEN_WIDTH, SCREEN_HEIGHT, Object
+
+
+Obj = Object
 
 uart = UART(2)
 uart.init(2000000, bits=8, parity=None, stop=1)
@@ -36,3 +40,9 @@ def display(skin, x_display, y_display):
 
 def write(char):
     uart.write(char)
+
+
+def displayObj(Obj):
+    for index, line in enumerate(Obj.body.splitlines()):
+        move(Obj.x, Obj.y + index)
+        uart.write(line)

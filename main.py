@@ -1,11 +1,12 @@
 from pyb import UART, SPI, Pin, LED, delay
 
+
 # import pyb
 import accelerometer
 import voitures
 import texts
 import vt100
-from constant import FSM
+from constant import FSM, SCREEN_HEIGHT, SCREEN_WIDTH, Object
 
 ####### UART #######
 
@@ -13,15 +14,6 @@ from constant import FSM
 ####### PINs DEFINITION #######
 push_button = Pin("PA0", Pin.IN, Pin.PULL_DOWN)
 led_px, led_nx, led_py, led_ny = LED(1), LED(2), LED(3), LED(4)
-
-######## SPI/ACCELEROMETER MANAGEMENT ###########
-
-# x_addr = 0x28
-# y_addr = 0x2A
-# z_addr = 0x2C
-# addr_who_am_I = 0x0F
-# addr_ctrl_reg4 = 0x20
-
 
 ####### VARIABLES / CONSTANT #######
 logoIsDiplayed = False
@@ -117,34 +109,45 @@ while True:
         vt100.move(0, 0)
         vt100.write("Please make sure your VT100 window is set to 200x50")
         delay(2000)
-
+        intro_car1 = Object(90, 160, voitures.police)
+        intro_car2 = Object(80, 140, voitures.bleu)
         cars_displayed = False
         choosen_car = None
+
         if logoIsDiplayed == False:
             vt100.clear_screen()
             vt100.display(texts.flag, 20, 2)
             vt100.display(texts.flag, 170, 2)
             vt100.display(texts.CarDodge, 55, 2)
             logoIsDiplayed = True
-            for ycar in range(160, 30, -4):
-                vt100.display(voitures.police, 90, ycar)
-                vt100.display(voitures.bleu, 80, ycar - 20)
+
+            for ycar in range(60, 30, -4):
+                intro_car1.y = ycar
+                intro_car2.y = ycar - 20
+                # vt100.display(voitures.police, 90, ycar)
+                vt100.displayObj(intro_car1)
+                vt100.displayObj(intro_car2)
 
             delay(2000)
-
+        del intro_car1
+        del intro_car2
         FSM = "CHOOSE CAR"
         FSM_Changed = True
         ##END FSM : INITIALISATION ##
 
     elif FSM == "CHOOSE CAR":
+        Text = Object(30, 1, texts.chooseCar)
+        Police = Object(22, 10, voitures.police)
+        Ambulance = Object(52, 10, voitures.ambulance)
+        Rouge = Object(82, 10, voitures.rouge)
+        Bleu = Object(112, 10, voitures.bleu)
+        Verte = Object(142, 10, voitures.verte)
+        Cars = (Text, Police, Ambulance, Rouge, Bleu, Verte)
+
         if FSM_Changed == True:
             vt100.clear_screen()
-            vt100.display(texts.chooseCar, 30, 1)
-            vt100.display(voitures.police, 22, 10)
-            vt100.display(voitures.ambulance, 52, 10)
-            vt100.display(voitures.rouge, 82, 10)
-            vt100.display(voitures.bleu, 112, 10)
-            vt100.display(voitures.verte, 142, 10)
+            for car in Cars:
+                vt100.displayObj(car)
             FSM_Changed = False
 
         if last_x != x:
@@ -155,15 +158,15 @@ while True:
 
         if push_button.value():
             if x == 30:
-                choosen_car = voitures.police
+                playerCar = Object(90, 32, voitures.police)
             if x == 60:
-                choosen_car = voitures.ambulance
+                playerCar = Object(90, 32, voitures.ambulance)
             if x == 90:
-                choosen_car = voitures.rouge
+                playerCar = Object(90, 32, voitures.rouge)
             if x == 120:
-                choosen_car = voitures.bleu
+                playerCar = Object(90, 32, voitures.bleu)
             if x == 150:
-                choosen_car = voitures.verte
+                playerCar = Object(90, 32, voitures.verte)
             FSM = "PLAYING"
             FSM_Changed = True
             ##END FSM : CHOOSE CAR ##
@@ -176,36 +179,7 @@ while True:
             last_x = 0
 
         if x != last_x:
-            vt100.display(choosen_car, x, 32)
+            playerCar.x = x
+            vt100.displayObj(playerCar)
             last_x = x
-
-        # for i in range(0, SCREEN_HEIGHT, 1):
-        #     move_VT100(0, i)
-        #     uart.write("⬜️")
-        #     move_VT100(0, i + 1)
-        #     uart.write("⬜️")
-        #     move_VT100(0, i + 2)
-        #     uart.write("⬜️")
-        #     move_VT100(0, i + 3)
-        #     uart.write("⬜️")
-        #     move_VT100(0, i + 4)
-        #     uart.write("  ")
         accelToMovement(x_min=1, x_max=165, step_x=8)
-    # move(x, y)
-    # uart.write("█")
-    # clear_screen()
-
-    # for index, line in enumerate(voitures.police.splitlines()):
-    #     move_VT100(x, y + index)
-    #     uart.write(line)
-
-    # if (
-    #     push_button.value() and FSM == "PLAYING"
-    # ):  # DEMANDER AU PROF POURQUOI IL RENTRE DANS LA BOUCLE !!
-    #     FSM = "INITIALISATION"
-
-    # string = "X = " + str(x) + " Last_X = " + str(last_x)
-    # clear_line_VT100(49)
-    # X_MIDDLE = int((SCREEN_WIDTH - len(string)) / 2)
-    # move_VT100(X_MIDDLE, SCREEN_HEIGHT - 1)
-    # uart.write(string)
